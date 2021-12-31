@@ -22,9 +22,9 @@ fn main() {
         let s1 = String::from("test2");
         let s2 = s1; // s1 is moved to s2
                      // unlike a shallow copy, this assignment invalidates s1
-                     // println!("{}, world!", s1); // Causes a compilation error, because
-                     // Rust doesn't allow us to use an
-                     // invalidated reference
+        // println!("{}, world!", s1); // Causes a compilation error, because
+                                       // Rust doesn't allow us to use an
+                                       // invalidated reference
         println!("\t{}, yo!", s2);
     }
     println!("Scope 3");
