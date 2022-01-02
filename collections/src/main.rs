@@ -1,6 +1,8 @@
 // collections can contain multiple values and the data they point to is on the
 // heap (can grow or shrink as program runs, rather than being known at compile
 // time).
+use std::collections::HashMap;
+
 fn main() {
     // needs type annotation since we haven't inserted any items yet
     let mut v1: Vec<i32> = Vec::new();
@@ -88,5 +90,41 @@ fn main() {
     for b in s.bytes() {
         // valid Unicode scalars may be more than 1 byte
         println!("{}", b);
+    }
+
+    // HashMaps allow us to look up data (in a table of sorts) using a key
+    // which can be of any type. However, like vectors, all the keys must be
+    // the same type for the same HashMap instance. Each key can only have one
+    // value associated with it at a given time
+    let mut scores1 = HashMap::new();
+    scores1.insert(String::from("Green"), 2);
+    scores1.insert(String::from("Red"), 4);
+    // Unlike vectors and strings, HashMaps don't have a lot of support from
+    // the standard library where initialization is concerned. Another way to
+    // populate a HashMap, besides the above, is to use iterators and the
+    // collect method on a vector of tuples
+    let teams = vec![String::from("Blue"), String::from("Yellow")];
+    let values = vec![10, 50];
+    // Need the type annotation here since collect() could result in many
+    // different data structures. The underscores are used to allow the data
+    // types parametrizing the hash map to be inferred.
+    let mut scores2: HashMap<_, _> =
+        teams.into_iter().zip(values.into_iter()).collect();
+    scores2.insert(String::from("Blue"), 20); // overwriting a value
+    // We can also insert a value conditionally, if it does not exist. The
+    // entry function returns a mutable reference to the value for the
+    // corresponding key, if it exists. Such a mutable reference could be used
+    // to update values in the dictionary directly, in code following the call
+    // to the entry method
+    scores2.entry(String::from("Blue")).or_insert(30);
+    scores2.entry(String::from("Red")).or_insert(22);
+    // Types implementing Copy are copied directly into the HashMap, while
+    // owned values will be moved (transferring ownership to the HashMap)
+    if let Some(val) = scores2.get(String::from("Blue")) {
+        println!("val is {}", val);
+    }
+    // iteration
+    for (key, val) in &scores {
+        println!("{}: {}", key, val);
     }
 }
