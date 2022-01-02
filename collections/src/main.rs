@@ -53,4 +53,40 @@ fn main() {
         SpreadsheetCell::Float(9.81),
         SpreadsheetCell::Text(String::from("Hello, world!")),
     ];
+
+    // strings are implemented as a collection of bytes, and some methods that
+    // provide useful functionality when those bytes are interpreted as text.
+    // Indexing into a string is complicated by how String data may be
+    // interpreted. The str type is built into the language while the String
+    // type is provided by the standard library (both are UTF-8 encoded).
+    let mut s = "hello".to_string(); // any type implementing Display trait
+    // let mut s = String::from("hello"); // equivalent to the above
+
+    s.push(','); // single character
+    s.push_str(" world!"); // grow string
+
+    let s1 = "foo".to_string();
+    let s2 = "bar".to_string();
+    // let s = s1 + &s2; // invalidates s1 since + op takes ownership of 1st
+    let s = format!("{}{}", s1, s2); // concatenates without taking ownership
+
+    // Rust strings don't support indexing (i.e., s[0] won't give you the first
+    // character of the String s). This has to do with String being a wrapper
+    // over a Vec<u8>, and some Unicode values requiring 2 bytes of storage.
+    // Also, indexing a String can't provide O(1) lookup in Rust since we'd
+    // have to walk through the vector to determine how many valid elements
+    // are present. However, if we tell Rust specifically that we want a string
+    // slice (containing specific bytes), we can do that
+    let ss = &s[0..=3];
+    println!("{}", ss);
+
+    // We can also iterate over Strings pretty easily
+    for c in s.chars() {
+        println!("{}", c);
+    }
+    // ... and their byte representations
+    for b in s.bytes() {
+        // valid Unicode scalars may be more than 1 byte
+        println!("{}", b);
+    }
 }
