@@ -120,11 +120,11 @@ fn main() {
     scores2.entry(String::from("Red")).or_insert(22);
     // Types implementing Copy are copied directly into the HashMap, while
     // owned values will be moved (transferring ownership to the HashMap)
-    if let Some(val) = scores2.get(String::from("Blue")) {
+    if let Some(val) = scores2.get(&String::from("Blue")) {
         println!("val is {}", val);
     }
     // iteration
-    for (key, val) in &scores {
+    for (key, val) in &scores2 {
         println!("{}: {}", key, val);
     }
 }
