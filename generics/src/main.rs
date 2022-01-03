@@ -16,7 +16,7 @@
 // algorithm needs to perform elementwise comparisons, which means we must be
 // able to order the elements. Not all types T will be comparable in such a
 // way, so to restrict this function to only types which can be ordered, we use
-// a trait
+// a trait.
 fn find_max<T: PartialOrd + Copy>(list: &[T]) -> T {
     let mut max = list[0];
     for &item in list {
@@ -49,6 +49,41 @@ impl Point<f32> {
     }
 }
 
+// Traits define shared behaviour across types in an abstract way. By
+// behaviour, we mean the methods we can call on that type. Traits are similar
+// to *interfaces* in other languages, although they're not exactly the same.
+// They can be thought of as a way to group method signatures (not the actual
+// implementations; that is handled separately by each type which implements
+// the trait) that are needed to accomplish some particular purpose. If we want
+// another crate to be able to implement our trait for its own types, then we
+// need to declare it as pub.
+pub trait Summary {
+    fn summarize(&self) -> String;
+}
+
+pub struct Article {
+    pub author: String,
+    pub headline: String,
+    pub content: String,
+}
+
+impl Summary for Article {
+    fn summarize(&self) -> String {
+        format!("{}, by {}", self.headline, self.author)
+    }
+}
+
+pub struct Tweet {
+    pub username: String,
+    pub content: String,
+}
+
+impl Summary for Tweet {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+}
+
 fn main() {
     let num_list = vec![2, -3, 42, 0, 16];
     let max = find_max(&num_list);
@@ -64,4 +99,10 @@ fn main() {
         "float_struct point is {} units away from origin",
         float_struct.dist_from_origin()
     );
+
+    let tweet = Tweet {
+        username: String::from("hunter2"),
+        content: String::from("Hello, world!"),
+    };
+    println!("Tweet: {}", tweet.summarize());
 }
