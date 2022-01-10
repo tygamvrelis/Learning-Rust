@@ -133,6 +133,47 @@ fn returns_summarizable() -> impl Summary {
     }
 }
 
+// Just like how Rust can often infer types, it can also infer the lifetimes of
+// references (i.e., the scope within which a given ref is valid). Sometimes we
+// have to explicitly tell Rust types when multiple are possible, and
+// similarly, sometimes we have to annotate relationships using generic
+// lifetime params to ensure that refs are valid at runtime. The Rust compiler
+// has a borrow checker to helper accomplish this. The borrow checker uses the
+// size of the scope of a variable to determine the lifetime for which it is
+// valid; it then checks all borrows (references), and compares whether the
+// lifetime of the value holding the reference exceeds the lifetime of the
+// value it is referring to. If such a case is detected, the compiler throws an
+// error.
+// The function below has a complication from a lifetime perspective;
+// basically, the borrow checker can't determine whether the reference returned
+// will always be valid, since it can't know ahead of time whether the if or
+// else block will execute (and hence whether the value is borrowed from s1 or
+// s2). To fix this, we need to add lifetime annotations.
+// Lifetime annotations help describe the relationships of lifetimes among many
+// references without actually affecting the lifetimes. A lifetime annotation
+// for a single parameter doesn't carry much meaning, since these annotations
+// are meant to convey relationships. For example, if two references passed
+// into a function both have a general lifetime 'a, it means that both of the
+// references must live at least as long as the generic lifetime. In that case,
+// the generic lifetime parameter 'a will end up being replaced with the
+// concrete lifetime that is the shorter of the two parameters. Although this
+// can restrict usage of the function, it ensures that results will always be
+// used in a valid manner (i.e., lifetime of result can't exceed lifetime of
+// its borrowed value).
+// Lifetime parameter names always begin with an apostrophe ', and 'a is the
+// go-to in the same way that T is the go-to for generic types.
+// In summary, lifetime annotations effectively describe constraints we want
+// Rust's borrow checker to enforce (i.e., don't compile if any scenarios can
+// arise that violate the constraints). Lifetimes don't need to be annotated
+// within a function, just to or from code outside a function.
+fn longest<'a>(s1: &'a str, s2: &'a str) -> &'a str {
+    if s1.len() > s2.len() {
+        s1
+    } else {
+        s2
+    }
+}
+
 fn main() {
     let num_list = vec![2, -3, 42, 0, 16];
     let max = find_max(&num_list);
@@ -158,4 +199,25 @@ fn main() {
         content: String::from("LOREM IPSUM!!"),
     };
     println!("Article: {}", article.summarize());
+
+    let string1 = String::from("test");
+    {
+        let string2 = String::from("longer_test");
+        // Based on the lifetime annotations for longest, res will get the
+        // shorter of the two lifetimes for the two arguments. In this case,
+        // res's lifetime will be equal to that of string2, which is the inner
+        // scope
+        let res = longest(string1.as_str(), string2.as_str());
+        println!("Longest string is {}", res);
+    }
+    // The code below will result in a compile error due to the value that res
+    // borrows not living long enough. It doesn't matter whether string2 or
+    // string1 is longer; what matters is the lifetimes of the arguments and
+    // whether the *function* could possibly return either of them.
+    // let res;
+    // {
+    //     let string2 = String::from("l");
+    //     res = longest(string1.as_str(), string2.as_str());
+    // }
+    // println!("Longest string is {}", res);
 }
