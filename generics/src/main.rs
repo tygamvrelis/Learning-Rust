@@ -165,7 +165,12 @@ fn returns_summarizable() -> impl Summary {
 // In summary, lifetime annotations effectively describe constraints we want
 // Rust's borrow checker to enforce (i.e., don't compile if any scenarios can
 // arise that violate the constraints). Lifetimes don't need to be annotated
-// within a function, just to or from code outside a function.
+// within a function, just to or from code outside a function. Finally, a
+// function which returns a reference must have a lifetime parameter for the
+// return type that matches the lifetime parameter for one of the function
+// parameters (if it did not, then the returned type must refer to a reference
+// created within the function, which would be a dangling reference after going
+// out of scope at the end of the function).
 fn longest<'a>(s1: &'a str, s2: &'a str) -> &'a str {
     if s1.len() > s2.len() {
         s1
@@ -173,6 +178,37 @@ fn longest<'a>(s1: &'a str, s2: &'a str) -> &'a str {
         s2
     }
 }
+
+// Lifetime param 'a here indicates that an instance of this struct can't
+// outlive the reference held in the part field. If there were more fields that
+// were references, we would need to provide a lifetime annotation for each of
+// them too. In this case, the lifetime param is considered part of the
+// struct's type
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+impl<'a> ImportantExcerpt<'a> {
+    fn tst(&self) {
+        println!("ImportantExcerpt: {}", self.part);
+    }
+}
+
+// The Rust compiler recognizes certain patterns of references; in these cases,
+// you don't have to write the lifetime parameters explicitly. The patterns are
+// called lifetime elision rules, and may grow as Rust development continues.
+// Lifetimes on function parameters are called input lifetimes, and on return
+// values are called output lifetimes. When there aren't explicit lifetime
+// params, the compiler uses 3 rules to try determining the lifetimes
+// references have:
+// 1. Each parameter gets its own lifetime reference
+// 2. If there is just 1 input lifetime param, that same one is assigned to all
+//    output ones
+// 3. If there are multiple input lifetime params, but one of them is &self or
+//    &mut self, then the lifetime of self is applied to all output lifetime
+//    params
+// These rules can often help us write cleaner code. For example, class methods
+// look much cleaner when there's not an explicit lifetime param for &self
 
 fn main() {
     let num_list = vec![2, -3, 42, 0, 16];
@@ -208,7 +244,7 @@ fn main() {
         // res's lifetime will be equal to that of string2, which is the inner
         // scope
         let res = longest(string1.as_str(), string2.as_str());
-        println!("Longest string is {}", res);
+        println!("1: Longest string is {}", res);
     }
     // The code below will result in a compile error due to the value that res
     // borrows not living long enough. It doesn't matter whether string2 or
@@ -220,4 +256,19 @@ fn main() {
     //     res = longest(string1.as_str(), string2.as_str());
     // }
     // println!("Longest string is {}", res);
+    // Unlike the above case, the below works because string2 is a static
+    // string (i.e., a literal) and is therefore valid for the entire duration
+    // of the program since it's (baked into the binary)
+    let res;
+    {
+        // let string2 = "longer_test"; // short form
+        let string2: &'static str = "longer_test"; // full form
+        res = longest(string1.as_str(), string2);
+    }
+    println!("2: Longest string is {}", res);
+
+    let ex = ImportantExcerpt {
+        part: &string1,
+    };
+    ex.tst();
 }
