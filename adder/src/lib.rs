@@ -10,6 +10,26 @@
 // Any arguments passed into the assert macros, beyond their required ones, are
 // passed into format!. This is useful because it allows us to print custom,
 // details debugging messages when assertions fail.
+//
+// There are lots of options for changing the behaviour of cargo test, see them
+// by running "cargo test --help". The test binary also has its own set of
+// options, which can be viewed by running "cargo test -- --help".
+//
+// For example, tests run concurrently by default, so you have to make sure
+// they don't have shared state (test isolation is a best practise anyway).
+// However, it is possible to specify only 1 thread if you wish to run tests
+// consecutively.
+//
+// As another example, tests only show messages from println! if they fail. We
+// can change this setting by running "cargo test -- --show-output".
+//
+// We can run a specific test by name, e.g., "cargo test it_works". We can also
+// run a subset of tests by specifying a substring contained within their
+// names, e.g., "cargo test it" will run the it_works and it_adds_two tests.
+//
+// For time-consuming tests that we don't want to run everytime, we can
+// annotate them with the #[ignore] attribute. If we want to run all ignored
+// tests, we can use the command "cargo test -- --ignored"
 
 #[derive(Debug)]
 struct Rectangle {
