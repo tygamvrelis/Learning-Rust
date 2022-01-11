@@ -31,6 +31,28 @@
 // annotate them with the #[ignore] attribute. If we want to run all ignored
 // tests, we can use the command "cargo test -- --ignored"
 
+// There are two categories of tests we think about in Rust: unit and
+// integration tests.
+// Unit tests lie in the src directory, in the same file as the code they're
+// testing. Conventionally, they lie in a module named test that's annotated
+// with #[cfg(test)], which tells Rust to compile and run that code only when
+// you run "cargo test".
+// Integration tests are external to a library and use your library the same
+// way other code would (i.e., they use its public API). The purpose is to
+// test whether the various parts of your library work together properly.
+// Integration tests require a tests directory next to src; each file in this
+// directory is compiled as an individual crate. Files in the tests directory
+// are only compiled when we run "cargo test". We can still run a specific
+// integration test by specifying its name (or a substring), and can run a
+// specific set of integration tests by specifying the file name (e.g., "cargo
+// test --test integration_test"). We may wish to include some common helper
+// code to set up the integration tests, and to avoid this getting its own line
+// in the test output, we can put this code in tests/common/mod.rs, since files
+// in subdirectories of tests don't get compiled as separate crates or have
+// sections in the test output. Note that integration testing only applies to
+// library crates; binary crates with a src/main.rs file are meant to be run on
+// their own, and offload most of the functionality that lives in libraries.
+
 #[derive(Debug)]
 struct Rectangle {
     width: u32,
@@ -47,7 +69,7 @@ pub fn add_two(x: i32) -> i32 {
     x + 2 // change to x + 3 to see custom assertion error message
 }
 
-pub struct Guess {
+struct Guess {
     value: i32,
 }
 
