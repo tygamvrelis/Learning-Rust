@@ -1,8 +1,8 @@
 use std::env;
 use std::process;
 
-use minigrep::Config;
 use minigrep::run;
+use minigrep::Config;
 
 // Main function should delegate its tasks to functions so that it becomes more
 // clear what the responsibilities of the program are and how they are
@@ -17,11 +17,11 @@ fn main() {
     // type we desire (in this case, a Vec<String>)
     let args: Vec<String> = env::args().collect();
     let config = Config::new(&args).unwrap_or_else(|err| {
-        println!("Argument parsing problem: {}", err);
+        eprintln!("Argument parsing problem: {}", err);
         process::exit(1);
     });
     if let Err(e) = run(config) {
-        println!("Application error: {}", e);
+        eprintln!("Application error: {}", e);
         process::exit(1);
     }
 }
