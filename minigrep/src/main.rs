@@ -12,11 +12,8 @@ use minigrep::Config;
 // Errors should be descriptive so that the user can identify the problems more
 // easily.
 fn main() {
-    // Collect turns the args env::args() iterator into a collection. It can
-    // create a variety of collections, so we need to explicitly annotate the
-    // type we desire (in this case, a Vec<String>)
-    let args: Vec<String> = env::args().collect();
-    let config = Config::new(&args).unwrap_or_else(|err| {
+    // pass ownership of the iterator returned by env::args
+    let config = Config::new(env::args()).unwrap_or_else(|err| {
         eprintln!("Argument parsing problem: {}", err);
         process::exit(1);
     });

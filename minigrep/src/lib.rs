@@ -11,17 +11,22 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &str> {
-        let num_args = args.len();
-        if num_args < 3 {
-            return Err("not enough arguments");
-        }
+    pub fn new<'a, I: Iterator<Item = String>>(mut args: I) -> Result<Config, &'static str> {
+        args.next(); // skip program name
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query"),
+        };
+        let fname = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a filename"),
+        };
         // is_err() == true --> env var not set --> do case sensitive search
-        let is_case_sensitive = env::var("CASE_INSENSITIVE").is_err();
+        let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
         Ok(Config {
-            query: args[1].clone(),
-            fname: args[2].clone(),
-            case_sensitive: is_case_sensitive
+            query,
+            fname,
+            case_sensitive,
         })
     }
 }
@@ -41,16 +46,16 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+// iterator adapter and consumer approach. Iterators are a zero-overhead
+// abstraction and may communicate intent more clearly
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut res = Vec::new();
-    for line in contents.lines() {
-        if line.contains(query) {
-            res.push(line);
-        }
-    }
-    res
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
+// original code with mutable state
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     let query = query.to_lowercase(); // creates new data (no longer a reference)
     let mut res = Vec::new();
@@ -67,11 +72,11 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "not enough arguments")]
+    #[should_panic(expected = "filename")]
     fn new_config_errs_with_2_args() {
         let args = [String::from("bin_name"), String::from("arg1")];
 
-        let _config = Config::new(&args).unwrap_or_else(|err| {
+        let _config = Config::new(args.into_iter()).unwrap_or_else(|err| {
             panic!("Argument parsing problem: {}", err);
         });
     }
@@ -84,7 +89,7 @@ mod tests {
             String::from("arg2"),
         ];
 
-        if let Err(msg) = Config::new(&args) {
+        if let Err(msg) = Config::new(args.into_iter()) {
             panic!("Fatal test error: {}", msg);
         }
     }
