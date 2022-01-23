@@ -23,7 +23,64 @@ enum List {
     Nil,
 }
 
+use crate::List::{Cons, Nil};
+
+fn learning_about_box() {
+    let _list = Cons(1, Box::new(Cons(2, Box::new(Cons(3, Box::new(Nil))))));
+}
+
+// Learning about the Deref trait: MyBox<T>
+// (MyBox<T> will not store data on the heap, since the main purpose of this
+// lesson is to learn about the Deref trait)
+// Generally speaking, the Deref operator lets us "follow the pointer to the
+// data". Basically, it allows us to write code that functions exactly the same
+// way whether we pass in ordinary references or a type that implements Deref.
+struct MyBox<T>(T); // tuple struct with one element
+
+impl<T> MyBox<T> {
+    fn new(x: T) -> MyBox<T> {
+        MyBox(x)
+    }
+}
+
+use std::ops::Deref;
+
+impl<T> Deref for MyBox<T> {
+    type Target = T; // associated type for Deref trait (similar to generics)
+
+    fn deref(&self) -> &Self::Target {
+        &self.0 // return the element of the tuple
+    }
+}
+
+fn learning_about_mybox() {
+    let x = 5;
+    let y = &x; // ref pointing to value of x
+    let z = Box::new(x); // box pointing to a copied value of x
+    let w = MyBox::new(x);
+    assert_eq!(5, x);
+    assert_eq!(5, *y);
+    assert_eq!(5, *z);
+    assert_eq!(5, *w); // *(w.deref())
+}
+
+// On a related note, deref coercion is a convenience that Rust performs on
+// function and method arguments; it converts a type reference into another
+// one. For example, &String to &str is done automatically because String
+// implements the Deref trait such that a &str is returned. Deref coercion
+// interacts with mutability in some important ways.
+fn tst(message: &str) {
+    println!("{}!", message);
+}
+
+fn learning_about_deref_coercion() {
+    let m = MyBox::new(String::from("Hello world!"));
+    tst(&m); // Follow deref() calls: &MyBox<String> --> &String --> &str
+    tst(&(*m)[..]); // alternative, if there was no deref coercion
+}
+
 fn main() {
-    let list = Cons(1, Box::new(Cons(2, Box::new(Cons(3, Box::new(Nil))))));
-    println!("Hello, world!");
+    learning_about_box();
+    learning_about_mybox();
+    learning_about_deref_coercion();
 }
