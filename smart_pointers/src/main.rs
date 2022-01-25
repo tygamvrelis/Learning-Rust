@@ -79,8 +79,38 @@ fn learning_about_deref_coercion() {
     tst(&(*m)[..]); // alternative, if there was no deref coercion
 }
 
+// The Drop trait lets us customize what happens when a value is about to go
+// out of scope, which is especially useful for releasing system resources.
+// This is one example of a particular destructor in Rust. Useful in making
+// cleanup convenient and safe. Rust's ownership system ensures it is never
+// possible to drop a value still in use (references must always be valid, so
+// drop can only be called when the value is no longer being used)
+struct CustomSP {
+    data: String,
+}
+
+impl Drop for CustomSP {
+    // automatically called when value goes out of scope; not allowed to be
+    // manually invoked (would result in a double-free when then automatically
+    // called after going out of scope). If we need to force a value to clean
+    // up early, we need to use std::mem::drop (included in the prelude)
+    fn drop(&mut self) {
+        println!("Dropping CustomSP with data `{}`", self.data);
+    }
+}
+
+fn learning_about_drop() {
+    // variables are dropped in the reverse order of their creation
+    let _a = CustomSP { data: String::from("I am a") };
+    let _b = CustomSP { data: String::from("I am b") };
+    let _c = CustomSP { data: String::from("I am c") };
+    drop(_b);
+    println!("CustomSPs created");
+}
+
 fn main() {
     learning_about_box();
     learning_about_mybox();
     learning_about_deref_coercion();
+    learning_about_drop();
 }
