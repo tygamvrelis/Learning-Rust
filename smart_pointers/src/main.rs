@@ -108,9 +108,44 @@ fn learning_about_drop() {
     println!("CustomSPs created");
 }
 
+// Sometimes a value needs to have multiple owners, e.g., in a graph, a node
+// might be owned by all the edges connected to it. To enable this sort of
+// multiple ownership, Rust has Rc<T>, which counts the number of references to
+// the value to determine whether it is still in use. Rc<T> is used for data on
+// the heap that is read by multiple parts of our program, and for which the
+// last owner can't be determined at compile time. Rc<T> can only be used in
+// single-threaded programs.
+enum RcList {
+    RcCons(i32, Rc<RcList>), // store pointer to next list value
+    RcNil,
+}
+
+use crate::RcList::{RcCons, RcNil};
+
+// Rc::clone just increases the reference count; doesn't deepy copy the data
+// being referenced. This is why the convention is to use Rc::clone instead of
+// a.clone(), because Rc::clone is not a performance hit, while usually the
+// clone method would create a deep copy and thus be a performance concern.
+use std::rc::Rc;
+
+fn learning_about_rc() {
+    let a = Rc::new(RcCons(1, Rc::new(RcCons(2, Rc::new(RcNil)))));
+    println!("Ref count: {}", Rc::strong_count(&a));
+    let _b = RcCons(3, Rc::clone(&a));
+    println!("Ref count after creating _b: {}", Rc::strong_count(&a));
+    {
+        let _c = RcCons(-3, Rc::clone(&a));
+        println!("Ref count after creating _c: {}", Rc::strong_count(&a));
+    }
+    // The drop implementation for Rc automatically decreases the reference
+    // count
+    println!("Ref count after _c goes out of scope: {}", Rc::strong_count(&a));
+}
+
 fn main() {
     learning_about_box();
     learning_about_mybox();
     learning_about_deref_coercion();
     learning_about_drop();
+    learning_about_rc();
 }
