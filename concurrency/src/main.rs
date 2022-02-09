@@ -14,7 +14,7 @@
 use std::thread;
 use std::time::Duration;
 
-fn main() {
+fn basic_threading() {
     let handle = thread::spawn(|| {
         for i in 1..=10 {
             println!("{} from spawned thread", i);
@@ -47,4 +47,63 @@ fn main() {
         println!("{:?} from spawned thread", v);
     });
     handle.join().unwrap();
+}
+
+// A popular approach for safe concurrency is message passing: rather than
+// communicating by sharing memory, we share memory by communicating. To this
+// end, Rust provides a programming concept in the standard library called a
+// channel. A channel consists of a transmitter-receiver pair, and is
+// considered closed if either of these is dropped.
+
+use std::sync::mpsc; // multiple producer single consumer
+
+fn message_passing() {
+    let (tx, rx) = mpsc::channel();
+
+    // clone before moving tx into its spawned thread
+    let tx1 = tx.clone();
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("---> I"),
+            String::from("---> Am"),
+            String::from("---> The"),
+            String::from("---> CLONE"),
+        ];
+        for val in vals {
+            tx1.send(val).unwrap();
+            thread::sleep(Duration::from_secs(1));
+        }
+    });
+    // spawned thread needs to own tx in order to use it
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("Hello!"),
+            String::from("World!"),
+            String::from("I am the spawned thread"),
+        ];
+        for val in vals {
+            tx.send(val).unwrap();
+            thread::sleep(Duration::from_secs(1));
+        }
+        // the ownership rules are vital in writing safe concurrent code, and
+        // for this case of message passing, sending a value transfers its
+        // ownership to the receiving thread. That is, we cannot use a value
+        // after sending it through a channel
+    });
+    // block until something is received. If we want non-blocking I/O, we can
+    // use try_recv() which returns a Result<T, E> with an Ok holding a message
+    // if one's available, or an Err if no messages are present at that time
+    // Old code:
+    //     let received = rx.recv().unwrap();
+    //     println!("Got: {}", received);
+    for received in rx {
+        println!("Got: {}", received);
+    }
+    // Once the transmitting thread is done sending the vector of strings, the
+    // transmitter will go out of scope, which breaks the receive loop
+}
+
+fn main() {
+    basic_threading();
+    message_passing();
 }
