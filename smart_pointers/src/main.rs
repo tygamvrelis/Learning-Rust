@@ -204,6 +204,57 @@ fn learning_about_refcell() {
     assert_eq!(messenger.sent_messages.borrow().len(), 1);
 }
 
+// Rust's memory safety makes it difficult, although not impossible, for memory
+// to be leaked. This can be done by using Rc<T> and RefCell<T> in cycles, so
+// that items refer to each other and thus can never be dropped.
+
+// One way to get around this is to reorganize data structures so that some
+// references express ownership and others don't. Strong references are how
+// ownership is expressed, since these change reference counts. On the other
+// hand, weak references do not express an ownership relation, and will not
+// prevent the referenced data from being dropped. A weak reference can be
+// obtained by downgrading a strong one, and before doing anything with a
+// Weak<T>, we have to check whether the referenced data still exists by
+// attempting to upgrade it. We will explore this in the context of a tree data
+// structure.
+
+use std::rc::Weak;
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    // parent can't be an Rc<Node>, since that would result in a reference
+    // cycle (parent -> child -> parent) hence a memory leak. In terms of
+    // ownership, a parent should own its children, i.e., if the parent node is
+    // dropped, then all its children should be too; however, the reverse is
+    // not true, which indicates weak references would be suitable here. We
+    // just want a child node to be able to refer to its parent, but don't want
+    // it to own its parent
+    parent: RefCell<Weak<Node>>,
+    // RefCell so that we can modify which nodes are children, and Rc<Node>
+    // vector elements so that ownership can be shared with variables
+    children: RefCell<Vec<Rc<Node>>>,
+}
+
+fn learning_about_ref_cycles() {
+    let leaf = Rc::new(Node {
+        value: 2,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+    println!("leaf parent is {:?}", leaf.parent.borrow().upgrade());
+    // after this line, the leaf node is now owned by (1) leaf and (2) branch
+    let branch = Rc::new(Node {
+        value: 4,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![Rc::clone(&leaf)]),
+    });
+    *leaf.parent.borrow_mut() = Rc::downgrade(&branch); // assign weak ref
+    // lack of infinite output of the below is an indication that this code is
+    // free of reference cycles
+    println!("leaf parent is {:?}", leaf.parent.borrow().upgrade());
+}
+
 fn main() {
     learning_about_box();
     learning_about_mybox();
@@ -211,4 +262,5 @@ fn main() {
     learning_about_drop();
     learning_about_rc();
     learning_about_refcell();
+    learning_about_ref_cycles();
 }
