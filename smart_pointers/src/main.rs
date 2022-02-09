@@ -142,10 +142,73 @@ fn learning_about_rc() {
     println!("Ref count after _c goes out of scope: {}", Rc::strong_count(&a));
 }
 
+// The interior mutability pattern in Rust allows you to mutate data even when
+// there are immutable references to it. We can do this when we can ensure that
+// the borrowing rules will be followed at runtime, even though the compiler
+// won't be able to guarantee it. Types using this pattern use unsafe code
+// wrapped in a safe API. One example of such a type is RefCell<T>. This type
+// is similar to Box<T>, but while misuse of the borrowing rules on a Box<T>
+// will cause a compiler error, misuse of a RefCell<T> will cause a runtime
+// panic. Checking borrowing rules at compile time has no runtime cost and can
+// speed up development, but checking them at runtime allows us to get around
+// cases that the compiler can't understand and guarantee. The compiler is
+// inherently conservative (would rather reject code than spit out an incorrect
+// program), so there are some cases where the programmer can take the
+// responsibility upon themselves if they require certain functionality.
+
+// RefCell<T> allows immutable or mutable borrows which are checked at runtime.
+// This means we can mutate the value inside it even when it is immutable. This
+// idea of mutating the value inside an immutable value is the interior
+// mutability pattern. This could be useful for writing a class method which
+// takes an immutable reference to self, yet modifies referenced data within
+// the class. Such functionality may be required in order to implement specific
+// traits. With RefCell<T>, we can use the borrow() and borrow_mut() methods
+// (part of the safe API) to get smart pointers of type Ref<T> and RefMut<T>,
+// respectively. RefCell<T> keeps track of how many mutable and immutable
+// borrows are active, and just like the compile-time rules, it will either
+// allow one mutable reference or many immutable references, at any given time
+// (and if these rules are violated, we'll get a runtime panic).
+// --> key: RefCell<T>'s runtime-checked borrowing rules allow us to make an
+//          object that can modify itself in a context where only immutable
+//          values are allowed.
+pub trait Messenger {
+    fn send(&self, msg: &str); // immutable reference to self
+}
+
+use std::cell::RefCell;
+
+pub struct MockMessenger{
+    sent_messages: RefCell<Vec<String>>,
+}
+
+impl MockMessenger {
+    fn new() -> MockMessenger {
+        MockMessenger {
+            sent_messages: RefCell::new(vec![])
+        }
+    }
+}
+
+impl Messenger for MockMessenger {
+    fn send(&self, msg: &str) {
+        // Without RefCell implementing the interior mutability pattern, we
+        // wouldn't be able to modify the sent_messages vector because this
+        // method takes an immutable reference to self
+        self.sent_messages.borrow_mut().push(String::from(msg));
+    }
+}
+
+fn learning_about_refcell() {
+    let messenger = MockMessenger::new(); // immutable value
+    messenger.send("Hello world!"); // mutates internal state
+    assert_eq!(messenger.sent_messages.borrow().len(), 1);
+}
+
 fn main() {
     learning_about_box();
     learning_about_mybox();
     learning_about_deref_coercion();
     learning_about_drop();
     learning_about_rc();
+    learning_about_refcell();
 }
