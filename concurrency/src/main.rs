@@ -103,7 +103,50 @@ fn message_passing() {
     // transmitter will go out of scope, which breaks the receive loop
 }
 
+// Rust's type system and ownership rules greatly assist in getting shared
+// state concurrency correct. Let's look at mutexes in Rust, which are a sync
+// primitive that allow threads to access shared memory one at a time. The two
+// main rules are:
+// 1. You need to try acquiring the lock before using the data it guards
+// 2. When you're done using the guarded data, you need to release the lock
+
+use std::sync::{Arc, Mutex};
+
+fn shared_state_concurrency() {
+    // single-threaded case
+    let m = Mutex::new(5); // must acquire lock before using value, since
+                           // Mutex<i32> is a different type than i32
+    {
+        // m.lock() returns a LockResult which we unwrap below. The wrapped
+        // value is a MutexGuard smart pointer, which we can deref to get the
+        // data guarded by the mutex. This smart pointer implements the drop
+        // trait so that the lock is automatically released once it goes out of
+        // scope
+        let mut num = m.lock().unwrap();
+        *num = 10;
+    }
+    println!("m = {:?}", m);
+
+    // multi-threaded case
+    let cnt = Arc::new(Mutex::new(0)); // allow for multiple owners (atomically)
+    let mut handles = vec![];
+    for _ in 0..10 {
+        // each spawned thread increments the counter by 1 in a safe manner
+        let cnt = Arc::clone(&cnt);
+        let handle = thread::spawn(move || {
+            let mut num = cnt.lock().unwrap();
+            *num += 1;
+        });
+        handles.push(handle);
+    }
+    for handle in handles {
+        handle.join().unwrap();
+    }
+    println!("Final count = {}", *cnt.lock().unwrap());
+}
+
 fn main() {
     basic_threading();
     message_passing();
+    shared_state_concurrency();
 }
