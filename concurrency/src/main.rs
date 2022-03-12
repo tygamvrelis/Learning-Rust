@@ -145,6 +145,20 @@ fn shared_state_concurrency() {
     println!("Final count = {}", *cnt.lock().unwrap());
 }
 
+// Send and Sync traits
+// If a type implements Send, then it means ownership of such a type can be
+// transferred between threads. As a rule of thumb, pretty much all primitives
+// are Send except for raw pointers. Types composed entirely of Send types are
+// automatically Send too.
+// The Sync trait indicates that it is safe for the type to be referenced from
+// multiple threads (i.e., an immutable reference to this type is Send).
+// Similar composition rules apply.
+// To reiterate: if we are creating a new type and we wish for it to implement
+// Send and/or Sync, then this is taken care of automatically as long as the
+// elements composing the type are also Send and/or Sync. If that is not the
+// case, then we will have to implement Send and Sync manually using unsafe
+// Rust.
+
 fn main() {
     basic_threading();
     message_passing();
